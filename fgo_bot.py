@@ -21,6 +21,14 @@ def load_config():
     return config
 
 
+def get_adb_path(config):
+    """获取adb路径，优先使用配置的路径，否则使用系统adb"""
+    adb_path = config.get('Paths', 'adb_path', fallback='')
+    if adb_path and os.path.exists(adb_path):
+        return f'"{adb_path}"'
+    return "adb"
+
+
 def run_command(cmd, description="", check_output=False):
     """执行系统命令"""
     if description:
@@ -36,13 +44,17 @@ def run_command(cmd, description="", check_output=False):
 
 def tap_screen(adb_device, x, y, description=""):
     """点击屏幕指定坐标"""
-    cmd = f"adb -s {adb_device} shell input tap {x} {y}"
+    config = load_config()
+    adb = get_adb_path(config)
+    cmd = f"{adb} -s {adb_device} shell input tap {x} {y}"
     return run_command(cmd, description)
 
 
 def key_event(adb_device, keycode, description=""):
     """发送按键事件"""
-    cmd = f"adb -s {adb_device} shell input keyevent {keycode}"
+    config = load_config()
+    adb = get_adb_path(config)
+    cmd = f"{adb} -s {adb_device} shell input keyevent {keycode}"
     return run_command(cmd, description)
 
 
@@ -97,21 +109,24 @@ def connect_adb(adb_device, timeout=60, interval=5):
     """连接ADB设备并等待设备就绪"""
     print(f"  尝试连接ADB设备: {adb_device} (超时{timeout}秒)")
     
+    config = load_config()
+    adb = get_adb_path(config)
+    
     # 先尝试直接连接
-    subprocess.run(f"adb connect {adb_device}", shell=True, capture_output=True)
+    subprocess.run(f"{adb} connect {adb_device}", shell=True, capture_output=True)
     
     start_time = time.time()
     attempt = 1
     while time.time() - start_time < timeout:
         print(f"    第{attempt}次尝试连接...")
         # 检查设备列表
-        result = subprocess.run("adb devices", shell=True, capture_output=True, text=True)
+        result = subprocess.run(f"{adb} devices", shell=True, capture_output=True, text=True)
         
         # 检查设备是否在线（不是offline/unauthorized）
         for line in result.stdout.strip().split('\n'):
             if adb_device in line and 'device' in line and 'offline' not in line:
                 # 再验证设备真正可用
-                test_result = subprocess.run(f"adb -s {adb_device} shell echo ready", 
+                test_result = subprocess.run(f"{adb} -s {adb_device} shell echo ready", 
                                             shell=True, capture_output=True, text=True)
                 if test_result.returncode == 0 and "ready" in test_result.stdout:
                     print(f"  ADB设备已就绪")
@@ -155,18 +170,20 @@ def shutdown_emulator(config):
 
 def launch_fgo(config):
     """启动FGO游戏"""
+    adb = get_adb_path(config)
     adb_device = config.get('Emulator', 'ip_port')
     package = config.get('Game', 'package', fallback='com.bilibili.fatego')
     activity = config.get('Game', 'activity', fallback='.UnityPlayerNativeActivity')
-    cmd = f"adb -s {adb_device} shell am start -n {package}/{activity}"
+    cmd = f"{adb} -s {adb_device} shell am start -n {package}/{activity}"
     return run_command(cmd, "启动FGO")
 
 
 def stop_fgo(config):
     """强制停止FGO"""
+    adb = get_adb_path(config)
     adb_device = config.get('Emulator', 'ip_port')
     package = config.get('Game', 'package', fallback='com.bilibili.fatego')
-    cmd = f"adb -s {adb_device} shell am force-stop {package}"
+    cmd = f"{adb} -s {adb_device} shell am force-stop {package}"
     return run_command(cmd, "关闭FGO")
 
 
