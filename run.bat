@@ -7,7 +7,7 @@ echo           FGO Automation Script
 echo ==========================================
 echo.
 
-python --version >nul 2>&1
+py --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python not found. Please install Python 3.6+
     pause
@@ -17,7 +17,7 @@ if errorlevel 1 (
 echo Starting automation...
 echo.
 cd /d "%~dp0"
-python fgo_bot.py
+py fgo_bot.py
 
 echo.
 echo ==========================================
