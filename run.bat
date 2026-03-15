@@ -34,4 +34,3 @@ echo.
 echo ==========================================
 echo Script finished
 echo.
-pause
